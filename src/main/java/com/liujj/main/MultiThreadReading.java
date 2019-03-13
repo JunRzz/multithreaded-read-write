@@ -1,4 +1,4 @@
-package com.liujj.main;
+package com.example.demo.IO;
 
 import org.apache.commons.io.FileUtils;
 
@@ -23,10 +23,9 @@ public class MultiThreadReading {
     /**
      * 单个片键的大小
      */
-    private static final int CHUNK_SIZE = 10 * 1024 * 1024;
+    private static final int CHUNK_SIZE = 100 * 1024 * 1024;
     private static ExecutorService executorService;
-    private static final String PATH_PREFIX =  "D:\\dataTest\\uploads\\";
-    private static final Object lock = new Object();
+    private static final String PATH_PREFIX = "D:\\dataTest\\uploads\\";
 
     public static void main(String[] args) throws IOException {
         executorService = Executors.newFixedThreadPool(10);
@@ -41,7 +40,7 @@ public class MultiThreadReading {
         System.out.println("MD5：" + MD5);
         //检查MD5是否存在
         boolean checkMD5 = checkMD5(MD5);
-        int chunk = checkChunk(MD5,file.getName());
+        int chunk = checkChunk(MD5, file.getName());
         if (checkMD5 && chunk == -1) {
             System.out.println("秒传成功！！");
         } else {
@@ -58,10 +57,9 @@ public class MultiThreadReading {
             dirFile.mkdirs();
         }
         File uploadFile = new File(dirFile, file.getName());
-        File configFile = new File(dirFile,file.getName() + ".config");
+        File configFile = new File(dirFile, file.getName() + ".config");
         long fileSize = file.length();
-        long chunks;
-        chunks = fileSize / CHUNK_SIZE;
+        long chunks = fileSize / CHUNK_SIZE;
         System.out.println("文件将分为 " + chunks + " 片");
         FileInputStream inputStream = null;
         try {
@@ -74,13 +72,13 @@ public class MultiThreadReading {
         for (int i = chunk; i <= chunks; i++) {
             byte[] dst;
             int thisChunk = i;
-            if (i == chunks){
-               long last = fileSize - chunks * CHUNK_SIZE;
-               if (last == 0){
-                   break;
-               }
-               dst = new byte[(int) last];
-            }else {
+            if (i == chunks) {
+                long last = fileSize - chunks * CHUNK_SIZE;
+                if (last == 0) {
+                    break;
+                }
+                dst = new byte[(int) last];
+            } else {
                 dst = new byte[CHUNK_SIZE];
             }
             long position = thisChunk * CHUNK_SIZE;
@@ -90,20 +88,22 @@ public class MultiThreadReading {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-           executorService.submit(() -> {
-                MappedByteBuffer writerBuffer = null;
-                FileChannel channel = null;
-                RandomAccessFile accessFile = null;
-                try {
-                        accessFile = new RandomAccessFile(uploadFile, "rw");
-                        channel = accessFile.getChannel();
-                        synchronized (lock){
-                            writerBuffer = channel.map(FileChannel.MapMode.READ_WRITE, position, dst.length);
-                            writerBuffer.put(dst);
-                        }
 
-                    if (recordPosition(thisChunk,(int)chunks,configFile)){
+            RandomAccessFile accessFile = null;
+            try {
+                accessFile = new RandomAccessFile(uploadFile, "rw");
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            FileChannel channel = accessFile.getChannel();
+            executorService.submit(() -> {
+                MappedByteBuffer writerBuffer = null;
+                try {
+                    writerBuffer = channel.map(FileChannel.MapMode.READ_WRITE, position, dst.length);
+                    writerBuffer.put(dst);
+                    if (recordPosition(thisChunk, (int) chunks, configFile)) {
                         System.out.println("分片写入完成");
+                        channel.close();
                         System.exit(0);
                     }
                 } catch (IOException e) {
@@ -111,8 +111,6 @@ public class MultiThreadReading {
                 } finally {
                     try {
                         unMapBuffer(writerBuffer, channel.getClass());
-                        channel.close();
-                        accessFile.close();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -129,19 +127,20 @@ public class MultiThreadReading {
     }
 
     //检查片键是否完成写入，所有已完成则返回-1，否者返回片键编号
-    private static int checkChunk(String MD5,String fileName) {
+    private static int checkChunk(String MD5, String fileName) {
         File configDir = new File(PATH_PREFIX + MD5);
         File configFile = new File(configDir, fileName + ".config");
         return checkChunk(configFile);
     }
-    private static int checkChunk(File configFile){
+
+    private static int checkChunk(File configFile) {
         byte[] bytes;
         try {
             bytes = FileUtils.readFileToByteArray(configFile);
-            for (int i = 0 ; i < bytes.length; i++){
-                  if (bytes[i] != Byte.MAX_VALUE){
-                      return i;
-                  }
+            for (int i = 0; i < bytes.length; i++) {
+                if (bytes[i] != Byte.MAX_VALUE) {
+                    return i;
+                }
             }
         } catch (FileNotFoundException e) {
             System.out.println("配置文件不存在，重新上传");
@@ -151,10 +150,11 @@ public class MultiThreadReading {
         }
         return -1;
     }
-    private static boolean recordPosition(int chunk,int totalChunk,File configFile){
+
+    private static boolean recordPosition(int chunk, int totalChunk, File configFile) {
         RandomAccessFile accessFile = null;
         try {
-             accessFile = new RandomAccessFile(configFile,"rw" );
+            accessFile = new RandomAccessFile(configFile, "rw");
             accessFile.setLength(totalChunk);
             accessFile.seek(chunk);
             accessFile.write(Byte.MAX_VALUE);
@@ -162,7 +162,7 @@ public class MultiThreadReading {
             return checkChunk(configFile) == -1;
         } catch (IOException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             try {
                 accessFile.close();
             } catch (IOException e) {
@@ -171,6 +171,7 @@ public class MultiThreadReading {
         }
         return false;
     }
+
     private static boolean checkMD5(String md5) {
         File directory = new File("D:\\dataTest\\uploads");
         if (!directory.exists()) {
