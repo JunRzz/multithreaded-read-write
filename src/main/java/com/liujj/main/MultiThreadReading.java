@@ -96,6 +96,7 @@ public class MultiThreadReading {
                 e.printStackTrace();
             }
             FileChannel channel = accessFile.getChannel();
+            //开启多线程写入
             executorService.submit(() -> {
                 MappedByteBuffer writerBuffer = null;
                 try {
@@ -150,7 +151,7 @@ public class MultiThreadReading {
         }
         return -1;
     }
-
+   //在config文件中记录分片的完成情况
     private static boolean recordPosition(int chunk, int totalChunk, File configFile) {
         RandomAccessFile accessFile = null;
         try {
