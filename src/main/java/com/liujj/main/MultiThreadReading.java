@@ -25,6 +25,9 @@ public class MultiThreadReading {
      */
     private static final int CHUNK_SIZE = 100 * 1024 * 1024;
     private static ExecutorService executorService;
+    /**
+     * 储存的路径
+     */
     private static final String PATH_PREFIX = "D:\\dataTest\\uploads\\";
 
     public static void main(String[] args) throws IOException {
@@ -41,6 +44,7 @@ public class MultiThreadReading {
         //检查MD5是否存在
         boolean checkMD5 = checkMD5(MD5);
         int chunk = checkChunk(MD5, file.getName());
+        //如果MD5值匹配且分片检查完成则表示文件已经上传过
         if (checkMD5 && chunk == -1) {
             System.out.println("秒传成功！！");
         } else {
@@ -57,6 +61,7 @@ public class MultiThreadReading {
             dirFile.mkdirs();
         }
         File uploadFile = new File(dirFile, file.getName());
+        //config文件，记录分片的完成情况
         File configFile = new File(dirFile, file.getName() + ".config");
         long fileSize = file.length();
         long chunks = fileSize / CHUNK_SIZE;
@@ -71,8 +76,10 @@ public class MultiThreadReading {
         MappedByteBuffer byteBuffer = null;
         for (int i = chunk; i <= chunks; i++) {
             byte[] dst;
+            //声明这个值纯粹是因为在匿名内部类中引用外部变量需要是final，而有i++这种操作effective final不会生效
             int thisChunk = i;
             if (i == chunks) {
+                //最后一个分片的大小，大部分情况不会是分片大小的整数倍，而最后一个片键不能简单粗暴的使用CHUNK_SIZE，会出现异常。
                 long last = fileSize - chunks * CHUNK_SIZE;
                 if (last == 0) {
                     break;
@@ -83,6 +90,8 @@ public class MultiThreadReading {
             }
             long position = thisChunk * CHUNK_SIZE;
             try {
+                //这里用fileChannel.map分片，但是如果文件大小超过2g，会报错Negative position，估计是跟size的大小不能超过int最大值的原因
+                // 但是暂时没有找到更好的分片方法。
                 byteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, position, dst.length);
                 byteBuffer.get(dst);
             } catch (IOException e) {
@@ -127,7 +136,7 @@ public class MultiThreadReading {
         }
     }
 
-    //检查片键是否完成写入，所有已完成则返回-1，否者返回片键编号
+    //检查片键是否完成写入，所有已完成则返回-1，否者返回片键编号，并从片键号开始写入
     private static int checkChunk(String MD5, String fileName) {
         File configDir = new File(PATH_PREFIX + MD5);
         File configFile = new File(configDir, fileName + ".config");
@@ -151,7 +160,7 @@ public class MultiThreadReading {
         }
         return -1;
     }
-   //在config文件中记录分片的完成情况
+   //在config文件中记录分片的完成情况，如果完成则写入Byte.Max_value
     private static boolean recordPosition(int chunk, int totalChunk, File configFile) {
         RandomAccessFile accessFile = null;
         try {
