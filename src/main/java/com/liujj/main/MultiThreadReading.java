@@ -1,4 +1,4 @@
-package com.example.demo.IO;
+package com.liujj.main;
 
 import org.apache.commons.io.FileUtils;
 
@@ -23,7 +23,7 @@ public class MultiThreadReading {
     /**
      * 单个片键的大小
      */
-    private static final int CHUNK_SIZE = 100 * 1024 * 1024;
+    private static final int CHUNK_SIZE = 50 * 1024 * 1024;
     private static ExecutorService executorService;
     /**
      * 储存的路径
