@@ -23,7 +23,7 @@ public class MultiThreadReading {
     /**
      * 单个片键的大小
      */
-    private static final int CHUNK_SIZE = 50 * 1024 * 1024;
+    private static final long CHUNK_SIZE = 100 * 1024 * 1024L;
     private static ExecutorService executorService;
     /**
      * 储存的路径
@@ -86,12 +86,10 @@ public class MultiThreadReading {
                 }
                 dst = new byte[(int) last];
             } else {
-                dst = new byte[CHUNK_SIZE];
+                dst = new byte[(int)CHUNK_SIZE];
             }
             long position = thisChunk * CHUNK_SIZE;
             try {
-                //这里用fileChannel.map分片，但是如果文件大小超过2g，会报错Negative position，估计是跟size的大小不能超过int最大值的原因
-                // 但是暂时没有找到更好的分片方法。
                 byteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, position, dst.length);
                 byteBuffer.get(dst);
             } catch (IOException e) {
