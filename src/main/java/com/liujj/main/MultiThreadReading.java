@@ -31,7 +31,7 @@ public class MultiThreadReading {
     private static final String PATH_PREFIX = "D:\\dataTest\\uploads\\";
 
     public static void main(String[] args) throws IOException {
-        executorService = Executors.newFixedThreadPool(10);
+        executorService = Executors.newFixedThreadPool(20);
         Scanner sc = new Scanner(System.in);
         System.out.print("请输入文件路径:");
         String path = sc.nextLine();
@@ -116,7 +116,7 @@ public class MultiThreadReading {
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
-                } finally {
+                }finally {
                     try {
                         unMapBuffer(writerBuffer, channel.getClass());
                     } catch (IOException e) {
