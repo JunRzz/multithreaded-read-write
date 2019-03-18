@@ -64,7 +64,7 @@ public class MultiThreadReading {
         //config文件，记录分片的完成情况
         File configFile = new File(dirFile, file.getName() + ".config");
         long fileSize = file.length();
-        long chunks = fileSize / CHUNK_SIZE;
+        long chunks = fileSize / CHUNK_SIZE + 1;
         System.out.println("文件将分为 " + chunks + " 片");
         FileInputStream inputStream = null;
         try {
@@ -74,13 +74,13 @@ public class MultiThreadReading {
         }
         FileChannel fileChannel = inputStream.getChannel();
         MappedByteBuffer byteBuffer = null;
-        for (int i = chunk; i <= chunks; i++) {
+        for (int i = chunk; i < chunks; i++) {
             byte[] dst;
             //声明这个值纯粹是因为在匿名内部类中引用外部变量需要是final，而有i++这种操作effective final不会生效
             int thisChunk = i;
-            if (i == chunks) {
+            if (i + 1 == chunks) {
                 //最后一个分片的大小，大部分情况不会是分片大小的整数倍，而最后一个片键不能简单粗暴的使用CHUNK_SIZE，会出现异常。
-                long last = fileSize - chunks * CHUNK_SIZE;
+                long last = fileSize - i * CHUNK_SIZE;
                 if (last == 0) {
                     break;
                 }
@@ -111,6 +111,7 @@ public class MultiThreadReading {
                     writerBuffer.put(dst);
                     if (recordPosition(thisChunk, (int) chunks, configFile)) {
                         System.out.println("分片写入完成");
+
                         channel.close();
                         System.exit(0);
                     }
