@@ -16,7 +16,6 @@ import java.util.concurrent.Executors;
 /**
  * @program: demo
  * @description:
- * @author: liujj
  * @create: 2019-03-12 17:36
  **/
 public class MultiThreadReading {
